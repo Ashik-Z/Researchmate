@@ -1,11 +1,9 @@
 from typing import TypedDict, Annotated
 import operator
 
-
-
-class ResearchState(TypedDict):
+class ResearchState(TypedDict, total=False):
     topic: str
-    sub_question: list[str]
+    sub_questions: list[str]
     search_results: list[dict]
     page_contents: list[str]
     reflections: str

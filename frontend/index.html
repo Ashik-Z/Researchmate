@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResearchMate</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #1a1a1a;
+    }
+
+    .container { max-width: 820px; margin: 0 auto; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+      font-size: 1rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    input:focus { border-color: #4f46e5; }
+
+    button {
+      padding: 12px 28px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      background: #fafafa;
+      border-bottom: 1px solid #e5e5e5;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4f46e5;
+    }
+
+    .dot.green { background: #22c55e; }
+    .dot.pulse {
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #steps-container { padding: 14px 18px; min-height: 60px; }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 0.88rem;
+      color: #444;
+      border-bottom: 1px solid #f0f0f0;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .node-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-planner  { background: #ede9fe; color: #5b21b6; }
+    .badge-search   { background: #e0f2fe; color: #0369a1; }
+    .badge-reader   { background: #dcfce7; color: #15803d; }
+    .badge-reflect  { background: #fef9c3; color: #a16207; }
+    .badge-writer   { background: #fce7f3; color: #9d174d; }
+
+    #report-container { padding: 20px 24px; display: none; }
+
+    #report-content {
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 0.97rem;
+      color: #1a1a1a;
+    }
+
+    #report-content h2, #report-content h3 {
+      margin: 16px 0 8px;
+      color: #1a1a1a;
+    }
+
+    .empty-state {
+      color: #aaa;
+      font-size: 0.88rem;
+      font-style: italic;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ResearchMate</h1>
+    <p class="subtitle">Enter any topic. The agent will research, reflect, and write a report.</p>
+
+    <div class="input-row">
+      <input id="topic" type="text" placeholder="e.g. Impact of AI on software jobs in Bangladesh" />
+      <button id="run-btn" onclick="run()">Research</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot" id="steps-dot"></div>
+        Agent steps
+      </div>
+      <div id="steps-container">
+        <div class="empty-state">Agent steps will appear here...</div>
+      </div>
+    </div>
+
+    <div class="panel" id="report-panel" style="display:none">
+      <div class="panel-header">
+        <div class="dot green"></div>
+        Report
+      </div>
+      <div id="report-container">
+        <div id="report-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const badgeClass = {
+      planner: "badge-planner",
+      search:  "badge-search",
+      reader:  "badge-reader",
+      reflect: "badge-reflect",
+      writer:  "badge-writer"
+    };
+
+    async function run() {
+      const topic = document.getElementById("topic").value.trim();
+      if (!topic) return;
+
+      const btn = document.getElementById("run-btn");
+      btn.disabled = true;
+      btn.textContent = "Researching...";
+
+      document.getElementById("steps-container").innerHTML = "";
+      document.getElementById("report-panel").style.display = "none";
+      document.getElementById("report-container").style.display = "none";
+      document.getElementById("steps-dot").classList.add("pulse");
+
+      const res = await fetch("/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic })
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const lines = decoder.decode(value).split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data:")) continue;
+          const raw = line.slice(5).trim();
+          if (raw === "[DONE]") {
+            btn.disabled = false;
+            btn.textContent = "Research";
+            document.getElementById("steps-dot").classList.remove("pulse");
+            break;
+          }
+
+          const msg = JSON.parse(raw);
+
+          if (msg.type === "step") {
+            const div = document.createElement("div");
+            div.className = "step";
+            const badge = document.createElement("span");
+            badge.className = "node-badge " + (badgeClass[msg.node] || "");
+            badge.textContent = msg.node;
+            const text = document.createElement("span");
+            text.textContent = msg.text;
+            div.appendChild(badge);
+            div.appendChild(text);
+            document.getElementById("steps-container").appendChild(div);
+          }
+
+          if (msg.type === "report") {
+            document.getElementById("report-panel").style.display = "block";
+            document.getElementById("report-container").style.display = "block";
+            document.getElementById("report-content").textContent = msg.text;
+          }
+
+          if (msg.type === "error") {
+            const div = document.createElement("div");
+            div.style.color = "red";
+            div.textContent = "Error: " + msg.text;
+            document.getElementById("steps-container").appendChild(div);
+          }
+        }
+      }
+    }
+
+    document.getElementById("topic").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") run();
+    });
+  </script>
+</body>
+</html>
